@@ -1,4 +1,4 @@
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { User } from "../models/user.model.js";
 import { generateVerificationToken } from "../utils/jwtUtils.js";
@@ -10,10 +10,13 @@ export const registerUser = async (req, res) => {
 
   try {
     const existingUser = await User.findOne({ email });
+
     if (existingUser)
       return res.status(400).json({ message: "Email already in use" });
 
-    const hashedPassword = await bcrypt.hash(password, 8);
+    const salt = await bcrypt.genSalt(8);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
     const newUser = new User({
       name,
       email,
@@ -22,9 +25,11 @@ export const registerUser = async (req, res) => {
       mobile,
       isVerified: false,
     });
+
     await newUser.save();
 
     const verificationToken = generateVerificationToken(newUser);
+
     await sendVerificationEmail(newUser.email, verificationToken);
 
     res
@@ -67,7 +72,7 @@ export const login = async (req, res) => {
     }
 
     // Check if password matches
-    const isMatch = await user.comparePassword(password);
+    const isMatch = await user.matchPassword(password);
     console.log("Password match:", isMatch);
     if (!isMatch) {
       return res.status(401).json({ error: "Invalid credentials" });
@@ -79,6 +84,7 @@ export const login = async (req, res) => {
     }
 
     generateTokenAndSetCookie(user._id, res);
+    console.log("Token set in cookie");
 
     res.status(200).json({
       message: "Login successful",
