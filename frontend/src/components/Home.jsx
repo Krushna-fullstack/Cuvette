@@ -8,7 +8,7 @@ const Home = () => {
 
   return (
     <div>
-      {authUser && authUser.role === "company" && <CreateJob />}
+      {authUser && authUser?.role === "company" && <CreateJob />}
 
       <AllJobs />
     </div>
