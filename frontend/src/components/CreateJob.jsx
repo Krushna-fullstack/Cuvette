@@ -25,6 +25,7 @@ const CreateJob = () => {
             experienceLevel,
             endDate,
           }),
+          credentials: "include",
         });
 
         const data = await res.json();

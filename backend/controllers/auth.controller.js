@@ -66,25 +66,21 @@ export const login = async (req, res) => {
 
   try {
     const user = await User.findOne({ email });
-    console.log(user);
     if (!user) {
       return res.status(401).json({ error: "Invalid credentials" });
     }
 
-    // Check if password matches
     const isMatch = await user.matchPassword(password);
-    console.log("Password match:", isMatch);
     if (!isMatch) {
       return res.status(401).json({ error: "Invalid credentials" });
     }
 
     if (!user.isVerified) {
-      console.log("Email not verified for user:", user.email); // Add this line
       return res.status(403).json({ error: "Email not verified" });
     }
 
-    generateTokenAndSetCookie(user._id, res);
-    console.log("Token set in cookie");
+    generateTokenAndSetCookie(user._id, user.role, res);
+    console.log("Generated token with role:", user.role);
 
     res.status(200).json({
       message: "Login successful",

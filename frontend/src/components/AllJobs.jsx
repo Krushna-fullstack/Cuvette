@@ -4,11 +4,29 @@ import { AiFillDelete } from "react-icons/ai"; // Import the delete icon
 import toast from "react-hot-toast";
 
 const AllJobs = () => {
-  const { data: authUser } = useQuery({ queryKey: ["authUser"] });
+  // Fetch the authenticated user
+  const fetchAuthUser = async () => {
+    const response = await fetch("/api/v1/auth/me");
+    if (!response.ok) {
+      throw new Error("Failed to fetch auth user");
+    }
+    return response.json();
+  };
+
+  const {
+    data: authUser,
+    error: authError,
+    isLoading: authLoading,
+  } = useQuery({
+    queryKey: ["authUser"],
+    queryFn: fetchAuthUser,
+  });
+
+  // Fetch the jobs data
   const {
     data: jobsData,
-    error,
-    isLoading,
+    error: jobsError,
+    isLoading: jobsLoading,
   } = useQuery({
     queryKey: ["jobs"],
     queryFn: async () => {
@@ -64,16 +82,25 @@ const AllJobs = () => {
     }
   };
 
-  if (isLoading) {
+  if (authLoading || jobsLoading) {
     return (
       <div className="flex justify-center items-center h-screen">
-        <h2 className="text-lg">Loading jobs...</h2>
+        <h2 className="text-lg">Loading data...</h2>
       </div>
     );
   }
 
-  if (error) {
-    toast.error(error.message);
+  if (authError) {
+    toast.error(authError.message);
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <h2 className="text-lg text-red-500">Error fetching user</h2>
+      </div>
+    );
+  }
+
+  if (jobsError) {
+    toast.error(jobsError.message);
     return (
       <div className="flex justify-center items-center h-screen">
         <h2 className="text-lg text-red-500">Error fetching jobs</h2>
@@ -90,7 +117,7 @@ const AllJobs = () => {
   }
 
   // Debugging logs
-  console.log("Auth User ID:", authUser?._id);
+  console.log("Auth User:", authUser);
   console.log("Jobs Data:", jobsData);
 
   return (
@@ -102,7 +129,7 @@ const AllJobs = () => {
             key={job._id}
             className="relative bg-white shadow-md rounded-lg p-6 flex flex-col justify-between"
           >
-            {job.postedBy._id === authUser?._id && ( // Show delete button only to job owner
+            {job.postedBy?._id === authUser?._id && ( // Ensure job.postedBy and authUser are defined
               <button
                 className="absolute top-2 right-2 p-1 rounded-md bg-red-600 text-white hover:bg-red-500 transition"
                 onClick={() => deleteJob(job._id)}
@@ -121,7 +148,7 @@ const AllJobs = () => {
               End Date: {new Date(job.endDate).toLocaleDateString()}
             </p>
             <p className="text-gray-500 mt-2">
-              Posted By: {job.postedBy.email}
+              Posted By: {job.postedBy?.email || "Unknown"}
             </p>
 
             <button
